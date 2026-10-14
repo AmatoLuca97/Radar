@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Radar">
+<title>Radar Attività</title>
+<style>
+:root{
+  --bg:#f5f6f8;--surface:#ffffff;--surface2:#eef1f5;--text:#14181f;--muted:#5d6675;--line:#e1e5eb;
+  --accent:#e8590c;--accent-soft:#fff0e6;--good:#2b8a3e;--good-soft:#e6f6ea;--warn:#c76a00;--warn-soft:#fff4dc;
+  --bad:#d6336c;--bad-soft:#fde8ef;--shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1216;--surface:#181c22;--surface2:#222831;--text:#eef1f5;--muted:#9aa4b2;--line:#2a313b;
+  --accent:#ff7a33;--accent-soft:#3a2214;--good:#51cf66;--good-soft:#16301d;--warn:#ffb340;--warn-soft:#352812;
+  --bad:#ff6b9a;--bad-soft:#3a1824;--shadow:none;}}
+:root[data-theme="dark"]{
+  --bg:#0f1216;--surface:#181c22;--surface2:#222831;--text:#eef1f5;--muted:#9aa4b2;--line:#2a313b;
+  --accent:#ff7a33;--accent-soft:#3a2214;--good:#51cf66;--good-soft:#16301d;--warn:#ffb340;--warn-soft:#352812;
+  --bad:#ff6b9a;--bad-soft:#3a1824;--shadow:none;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{font-size:16px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+textarea{min-height:180px;resize:vertical;line-height:1.4}
+a{color:var(--accent)}
+.wrap{max-width:720px;margin:0 auto;padding:12px 16px calc(90px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(10px + env(safe-area-inset-top)) 16px 8px;border-bottom:1px solid var(--line)}
+header .in{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:10px}
+.logo{width:30px;height:30px;border-radius:9px;background:var(--accent);display:grid;place-items:center;color:#fff}
+h1{font-size:18px;margin:0;letter-spacing:-.2px}
+h2{font-size:17px;margin:18px 0 8px}
+h3{font-size:14px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+.muted{color:var(--muted)}.small{font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--shadow);margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{min-width:0}
+.grow{flex:1}
+.btn{border:0;border-radius:10px;padding:10px 14px;background:var(--surface2);font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;color:var(--text)}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5}
+.btn.sm{padding:7px 10px;font-size:13px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;white-space:nowrap;cursor:pointer}
+.chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.status{font-size:13px;color:var(--muted);margin:8px 2px}
+.status.err{color:var(--bad)}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;gap:12px;align-items:center;text-align:left;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer}
+.item .name{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .sub{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.tag{font-size:12px;padding:2px 7px;border-radius:6px;background:var(--surface2);color:var(--muted);white-space:nowrap}
+.tag.good{background:var(--good-soft);color:var(--good)}.tag.warn{background:var(--warn-soft);color:var(--warn)}.tag.bad{background:var(--bad-soft);color:var(--bad)}
+.score{flex:none;width:52px;height:52px;border-radius:14px;display:grid;place-items:center;text-align:center;font-weight:750;font-size:18px;line-height:1;background:var(--surface2);color:var(--muted)}
+.score small{display:block;font-size:9px;font-weight:600;letter-spacing:.3px;margin-top:3px;text-transform:uppercase}
+.score.hot{background:var(--accent);color:#fff}.score.mid{background:var(--warn-soft);color:var(--warn)}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+.tabbar button{flex:1;background:none;border:0;padding:6px;border-radius:10px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+.tabbar button.on{color:var(--accent)}
+.tabbar svg{width:22px;height:22px}
+.sheet{position:fixed;inset:0;z-index:10;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sheet .top{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);padding:calc(10px + env(safe-area-inset-top)) 16px 10px;z-index:2}
+.sheet .top .in{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:10px}
+.hero{display:flex;gap:14px;align-items:center}
+.big{width:76px;height:76px;border-radius:18px;font-size:28px}
+.grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:560px){.grid4{grid-template-columns:repeat(4,1fr)}}
+.area{background:var(--surface2);border-radius:12px;padding:10px}
+.area b{font-size:20px;display:block}
+.area.good b{color:var(--good)}.area.warn b{color:var(--warn)}.area.bad b{color:var(--bad)}
+.issues{margin:0;padding:0;list-style:none}
+.issues li{padding:9px 0;border-top:1px solid var(--line)}
+.issues li:first-child{border-top:0}
+.issues .svc{font-size:13px;color:var(--accent);font-weight:600}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.kv dt{color:var(--muted)}.kv dd{margin:0;text-align:right;overflow-wrap:anywhere}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.empty{text-align:center;color:var(--muted);padding:40px 12px}
+.progress{height:4px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-top:8px}
+.progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.note{font-size:13px;background:var(--accent-soft);border-radius:10px;padding:10px 12px;margin-bottom:12px}
+.foot{font-size:11px;color:var(--muted);text-align:center;margin-top:20px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="in">
+  <div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19.1 4.9a10 10 0 0 1 0 14.2M4.9 19.1a10 10 0 0 1 0-14.2"/></svg></div>
+  <h1 id="title">Radar Attività</h1>
+</div></header>
+
+<div class="wrap">
+  <!-- SCANSIONE -->
+  <section id="view-scan">
+    <div class="card">
+      <button class="btn primary block" id="btnHere">📍 Scansiona intorno a me</button>
+      <div class="row" style="margin-top:10px">
+        <input id="addr" class="grow" placeholder="…oppure via, piazza o città" autocomplete="off">
+        <button class="btn" id="btnAddr">Cerca</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <span class="small muted">Raggio</span>
+        <select id="radius" class="grow">
+          <option value="300">300 m</option><option value="500" selected>500 m</option>
+          <option value="1000">1 km</option><option value="2000">2 km</option>
+        </select>
+      </div>
+    </div>
+    <div id="noKeyNote" class="note" hidden>Senza chiave Google vedi solo le attività di OpenStreetMap e niente recensioni. Aggiungila in <b>Impostazioni</b> per dati completi e analisi siti illimitate.</div>
+    <div id="scanStatus" class="status"></div>
+    <div id="batchBox" class="card" hidden>
+      <div class="row"><div class="grow small" id="batchTxt"></div><button class="btn sm" id="btnBatch">Analizza siti</button></div>
+      <div class="progress"><i id="batchBar"></i></div>
+    </div>
+    <div id="filters" hidden>
+      <input id="q" placeholder="Filtra per nome…" style="margin-bottom:8px">
+      <div class="chips" id="chips">
+        <button class="chip" data-f="nosite">Senza sito</button>
+        <button class="chip" data-f="noig">Instagram da verificare / assente</button>
+        <button class="chip" data-f="hot">Opportunità alta</button>
+        <button class="chip" data-f="lowrev">Poche recensioni</button>
+      </div>
+      <div class="row" style="margin:8px 0 10px">
+        <select id="cat" class="grow"><option value="">Tutte le categorie</option></select>
+        <select id="sort" style="width:auto"><option value="opp">Opportunità</option><option value="dist">Distanza</option><option value="name">Nome</option></select>
+      </div>
+    </div>
+    <div class="list" id="list"></div>
+  </section>
+
+  <!-- LEAD -->
+  <section id="view-leads" hidden>
+    <div class="row" style="margin:6px 0 10px">
+      <select id="leadStatus" class="grow">
+        <option value="">Tutti i lead</option><option value="da_contattare">Da contattare</option>
+        <option value="contattato">Contattati</option><option value="interessato">Interessati</option>
+        <option value="cliente">Clienti</option><option value="scartato">Scartati</option>
+      </select>
+      <button class="btn" id="btnCsv">Esporta CSV</button>
+    </div>
+    <div class="list" id="leadList"></div>
+  </section>
+
+  <!-- IMPOSTAZIONI -->
+  <section id="view-settings" hidden>
+    <div class="card">
+      <h3>Il tuo messaggio</h3>
+      <label class="f" for="sName">Nome e cognome</label><input id="sName" placeholder="Luca …">
+      <label class="f" for="sService">Cosa fai (frase che apre il messaggio)</label>
+      <input id="sService" placeholder="mi occupo di siti web, social e pubblicità online per le attività della zona">
+      <label class="f" for="sPhone">Telefono / contatto da firmare</label><input id="sPhone" placeholder="+39 …">
+    </div>
+    <div class="card">
+      <h3>Chiave Google</h3>
+      <label class="f" for="sKey">API key (Maps JavaScript + Places API (New) + PageSpeed Insights)</label>
+      <input id="sKey" placeholder="AIza…" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <p class="small muted">Si crea gratis su console.cloud.google.com → API e servizi → Credenziali. Abilita le tre API qui sopra e limita la chiave al dominio dove pubblichi questa pagina. Google offre un credito mensile gratuito che di solito copre un uso personale.</p>
+    </div>
+    <button class="btn primary block" id="btnSaveSet">Salva impostazioni</button>
+    <div class="card" style="margin-top:16px">
+      <h3>Dati</h3>
+      <p class="small muted">Lead, note e analisi restano solo su questo telefono, in questo browser.</p>
+      <button class="btn block" id="btnWipe" style="color:var(--bad)">Cancella tutti i dati</button>
+    </div>
+    <p class="foot">Dati attività © OpenStreetMap contributors · Powered by Google (Places, PageSpeed Insights)</p>
+  </section>
+</div>
+
+<nav class="tabbar">
+  <button data-tab="scan" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19.1 4.9a10 10 0 0 1 0 14.2M4.9 19.1a10 10 0 0 1 0-14.2"/></svg>Radar</button>
+  <button data-tab="leads"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Lead</button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Impostazioni</button>
+</nav>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="top"><div class="in">
+    <button class="btn sm" id="btnClose">‹ Indietro</button>
+    <div class="grow" style="font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="sheetTitle"></div>
+  </div></div>
+  <div class="wrap" id="sheetBody"></div>
+</div>
+
+<script>
+/* ===================== utilità ===================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp = v => Math.max(0, Math.min(100, Math.round(v)));
+const uniq = a => [...new Set(a)];
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){ toastErr('Memoria del browser piena: esporta i lead e cancella i dati vecchi.'); } }
+};
+let settings = store.get('radar_settings', { googleKey:'', myName:'', myService:'', myPhone:'' });
+let db = store.get('radar_db', {});
+let scan = store.get('radar_scan', { ids:[], center:null, radius:500, at:null, label:'' });
+const save = () => { store.set('radar_db', db); store.set('radar_scan', scan); };
+const filters = { nosite:false, noig:false, hot:false, lowrev:false };
+
+function dist(a, b){
+  const R = 6371000, r = x => x * Math.PI / 180;
+  const dLat = r(b.lat - a.lat), dLon = r(b.lon - a.lon);
+  const h = Math.sin(dLat/2)**2 + Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLon/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const fmtDist = m => m == null ? '' : m < 1000 ? Math.round(m/10)*10 + ' m' : (m/1000).toFixed(1).replace('.', ',') + ' km';
+const normUrl = u => { if(!u) return ''; u = u.trim().split(/[;\s]/)[0]; return /^https?:\/\//i.test(u) ? u : 'https://' + u; };
+const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch(e){ return ''; } };
+function igHandle(s){
+  if(!s) return '';
+  s = String(s).trim();
+  const m = s.match(/instagram\.com\/([A-Za-z0-9._]+)/i);
+  if(m) return m[1];
+  return s.replace(/^@/, '').split(/[\/?\s]/)[0];
+}
+const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+  .replace(/[^a-z0-9 ]/g,' ').replace(/\b(srl|srls|snc|sas|spa|di|da|del|della|dei|la|il|lo|le|i|gli|e|and|the)\b/g,' ')
+  .replace(/\s+/g,' ').trim();
+function sameBiz(a, b){
+  if(a.lat == null || b.lat == null || dist(a, b) > 150) return false;
+  const x = norm(a.name), y = norm(b.name);
+  if(!x || !y) return false;
+  return x === y || (x.length > 3 && y.includes(x)) || (y.length > 3 && x.includes(y));
+}
+function setStatus(t, err){ const el = $('#scanStatus'); el.textContent = t || ''; el.classList.toggle('err', !!err); }
+function toastErr(t){ setStatus(t, true); }
+
+/* ===================== categorie ===================== */
+const CAT = {
+  restaurant:'Ristorante', cafe:'Bar / caffè', bar:'Bar', pub:'Pub', fast_food:'Fast food', ice_cream:'Gelateria',
+  pharmacy:'Farmacia', dentist:'Dentista', doctors:'Studio medico', clinic:'Clinica', veterinary:'Veterinario',
+  car_wash:'Autolavaggio', car_rental:'Noleggio auto', driving_school:'Scuola guida', nightclub:'Discoteca',
+  hairdresser:'Parrucchiere', beauty:'Estetista', clothes:'Abbigliamento', shoes:'Scarpe', bakery:'Panetteria',
+  butcher:'Macelleria', greengrocer:'Frutta e verdura', supermarket:'Supermercato', convenience:'Alimentari',
+  florist:'Fiorista', optician:'Ottico', jewelry:'Gioielleria', furniture:'Arredamento', hardware:'Ferramenta',
+  electronics:'Elettronica', mobile_phone:'Telefonia', books:'Libreria', gift:'Articoli regalo', pet:'Animali',
+  car_repair:'Autofficina', car:'Concessionaria', bicycle:'Bici', tobacco:'Tabaccheria', wine:'Enoteca',
+  pastry:'Pasticceria', confectionery:'Dolciumi', cosmetics:'Cosmetici', tattoo:'Tatuaggi', massage:'Massaggi',
+  estate_agent:'Agenzia immobiliare', lawyer:'Avvocato', accountant:'Commercialista', insurance:'Assicurazioni',
+  travel_agent:'Agenzia viaggi', hotel:'Hotel', guest_house:'B&B', hostel:'Ostello', apartment:'Casa vacanze',
+  fitness_centre:'Palestra', sports_centre:'Centro sportivo', dance:'Scuola di danza', photographer:'Fotografo',
+  physiotherapist:'Fisioterapista', laundry:'Lavanderia', dry_cleaning:'Lavanderia', bakery_shop:'Panetteria',
+  meal_takeaway:'Da asporto', pizza_restaurant:'Pizzeria', ice_cream_shop:'Gelateria', clothing_store:'Abbigliamento',
+  shoe_store:'Scarpe', jewelry_store:'Gioielleria', furniture_store:'Arredamento', electronics_store:'Elettronica',
+  hardware_store:'Ferramenta', pet_store:'Animali', book_store:'Libreria', gift_shop:'Articoli regalo', store:'Negozio',
+  beauty_salon:'Centro estetico', hair_salon:'Parrucchiere', barber_shop:'Barbiere', nail_salon:'Unghie', spa:'Spa',
+  gym:'Palestra', yoga_studio:'Yoga', doctor:'Medico', veterinary_care:'Veterinario', car_dealer:'Concessionaria',
+  real_estate_agency:'Agenzia immobiliare', accounting:'Commercialista', insurance_agency:'Assicurazioni',
+  lodging:'Alloggio', travel_agency:'Agenzia viaggi'
+};
+const human = v => v ? (CAT[v] || (v.charAt(0).toUpperCase() + v.slice(1)).replace(/_/g, ' ')) : 'Attività';
+function osmCat(t){
+  for(const k of ['amenity','shop','craft','healthcare','tourism','leisure']) if(t[k] && t[k] !== 'yes') return human(t[k]);
+  if(t.office) return t.office === 'yes' ? 'Ufficio' : human(t.office);
+  return 'Attività';
+}
+
+/* ===================== fonti dati ===================== */
+const AMENITY = 'restaurant|cafe|bar|pub|fast_food|ice_cream|pharmacy|dentist|doctors|clinic|veterinary|car_wash|car_rental|driving_school|nightclub|cinema|theatre|language_school|music_school|childcare|kindergarten|bicycle_rental';
+async function overpass(c, r){
+  const A = `(around:${r},${c.lat},${c.lon})`;
+  const q = `[out:json][timeout:25];(nwr${A}[name][~"^(shop|craft|office|healthcare)$"~"."];nwr${A}[name][amenity~"^(${AMENITY})$"];nwr${A}[name][tourism~"^(hotel|guest_house|hostel|motel|apartment|chalet)$"];nwr${A}[name][leisure~"^(fitness_centre|sports_centre|dance|escape_game)$"];);out center tags 300;`;
+  let last;
+  for(const u of ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']){
+    try {
+      const res = await fetch(u, { method:'POST', body:'data=' + encodeURIComponent(q), headers:{'Content-Type':'application/x-www-form-urlencoded'} });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return (await res.json()).elements || [];
+    } catch(e){ last = e; }
+  }
+  throw new Error('OpenStreetMap non risponde (' + (last && last.message) + ')');
+}
+function fromOsm(e){
+  const t = e.tags || {};
+  const city = t['addr:city'] ? ', ' + t['addr:city'] : '';
+  return {
+    id: 'osm:' + e.type[0] + e.id, name: t.name, cat: osmCat(t),
+    lat: e.lat ?? e.center?.lat, lon: e.lon ?? e.center?.lon,
+    address: [t['addr:street'], t['addr:housenumber']].filter(Boolean).join(' ') + city,
+    website: normUrl(t.website || t['contact:website'] || t.url || ''),
+    instagram: igHandle(t['contact:instagram'] || t.instagram || ''),
+    facebook: t['contact:facebook'] || t.facebook || '',
+    phone: t.phone || t['contact:phone'] || t['contact:mobile'] || t.mobile || '',
+    email: t.email || t['contact:email'] || '',
+    hours: t.opening_hours || '', google: null, sources: ['OpenStreetMap'],
+    closed: !!(t.shop === 'vacant' || t.disused || t['disused:shop'])
+  };
+}
+
+let gLoad = null, gAuthFail = false;
+function loadGoogle(key){
+  if(gLoad) return gLoad;
+  gLoad = new Promise((res, rej) => {
+    window.__gmInit = () => res();
+    window.gm_authFailure = () => { gAuthFail = true; rej(new Error('chiave Google rifiutata (controlla che le API siano abilitate e il dominio autorizzato)')); };
+    const s = document.createElement('script');
+    s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) + '&v=weekly&loading=async&callback=__gmInit';
+    s.onerror = () => rej(new Error('impossibile caricare Google'));
+    document.head.appendChild(s);
+  });
+  gLoad.catch(() => { gLoad = null; });
+  return gLoad;
+}
+const G_GROUPS = [
+  ['restaurant','cafe','bar','bakery','meal_takeaway','pizza_restaurant','ice_cream_shop'],
+  ['clothing_store','shoe_store','jewelry_store','florist','furniture_store','electronics_store','hardware_store','pet_store','book_store','store'],
+  ['beauty_salon','hair_salon','barber_shop','spa','gym','physiotherapist','dentist','doctor','veterinary_care','pharmacy'],
+  ['car_repair','car_dealer','real_estate_agency','lawyer','accounting','insurance_agency','lodging','travel_agency']
+];
+async function googleNearby(c, r){
+  await loadGoogle(settings.googleKey);
+  if(gAuthFail) throw new Error('chiave Google rifiutata');
+  const { Place, SearchNearbyRankPreference } = await google.maps.importLibrary('places');
+  const fields = ['id','displayName','formattedAddress','location','websiteURI','rating','userRatingCount',
+    'nationalPhoneNumber','internationalPhoneNumber','regularOpeningHours','businessStatus','primaryType','photos','googleMapsURI'];
+  const out = [], errs = [];
+  for(const types of G_GROUPS){
+    try {
+      const { places } = await Place.searchNearby({
+        fields, includedTypes: types, maxResultCount: 20, language: 'it', region: 'it',
+        locationRestriction: { center: { lat: c.lat, lng: c.lon }, radius: r },
+        rankPreference: SearchNearbyRankPreference.DISTANCE
+      });
+      out.push(...places);
+    } catch(e){ errs.push(e.message); }
+  }
+  if(!out.length && errs.length) throw new Error(errs[0]);
+  const seen = new Set();
+  return out.filter(p => !seen.has(p.id) && seen.add(p.id)).map(p => ({
+    id: 'g:' + p.id, name: p.displayName, cat: human(p.primaryType),
+    lat: p.location?.lat(), lon: p.location?.lng(), address: p.formattedAddress || '',
+    website: p.websiteURI || '', instagram: '', facebook: '', email: '',
+    phone: p.nationalPhoneNumber || '', intlPhone: p.internationalPhoneNumber || '', hours: '',
+    google: { rating: p.rating ?? null, reviews: p.userRatingCount ?? 0, photos: (p.photos || []).length,
+      hasHours: !!p.regularOpeningHours, status: p.businessStatus || '', url: p.googleMapsURI || '' },
+    sources: ['Google'], closed: p.businessStatus === 'CLOSED_PERMANENTLY'
+  }));
+}
+
+async function geocode(q){
+  const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q), { headers:{ 'Accept-Language':'it' } });
+  const j = await res.json();
+  if(!j.length) throw new Error('Indirizzo non trovato');
+  return { lat: +j[0].lat, lon: +j[0].lon, label: j[0].display_name.split(',').slice(0, 3).join(',') };
+}
+function getPosition(){
+  return new Promise((res, rej) => {
+    if(!navigator.geolocation) return rej(new Error('Geolocalizzazione non disponibile: cerca un indirizzo.'));
+    navigator.geolocation.getCurrentPosition(
+      p => res({ lat: p.coords.latitude, lon: p.coords.longitude, label: 'la tua posizione' }),
+      e => rej(new Error(e.code === 1 ? 'Permesso posizione negato. Attivalo per Safari (Impostazioni › Privacy › Localizzazione) o cerca un indirizzo.' : 'Posizione non disponibile, riprova o cerca un indirizzo.')),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+  });
+}
+
+/* ===================== analisi sito (PageSpeed) ===================== */
+async function analyzeSite(b){
+  const p = new URLSearchParams({ url: b.website, strategy: 'mobile', locale: 'it' });
+  ['performance','seo','accessibility','best-practices'].forEach(c => p.append('category', c));
+  if(settings.googleKey) p.set('key', settings.googleKey);
+  const res = await fetch('https://www.googleapis.com/pagespeedonline/v5/runPagespeed?' + p);
+  let j = {}; try { j = await res.json(); } catch(e){}
+  if(!res.ok || j.error){
+    const msg = j.error?.message || ('HTTP ' + res.status);
+    if(res.status === 429) throw new Error('Quota PageSpeed esaurita: aggiungi o controlla la chiave Google nelle Impostazioni.');
+    if(/FAILED_DOCUMENT_REQUEST|ERRORED_DOCUMENT_REQUEST|DNS_FAILURE|NO_FCP|unable to reliably load|INVALID_URL|NOT_HTML/i.test(msg))
+      return { at: Date.now(), unreachable: true, error: msg };
+    throw new Error(msg);
+  }
+  const L = j.lighthouseResult || {}, C = L.categories || {}, A = L.audits || {};
+  const sc = k => C[k]?.score == null ? null : Math.round(C[k].score * 100);
+  const finalUrl = L.finalDisplayedUrl || L.finalUrl || b.website;
+  return { at: Date.now(), finalUrl, perf: sc('performance'), seo: sc('seo'), acc: sc('accessibility'), bp: sc('best-practices'),
+    https: /^https:/i.test(finalUrl), lcp: A['largest-contentful-paint']?.displayValue || '',
+    viewport: A['viewport'] ? A['viewport'].score === 1 : null, metaDesc: A['meta-description'] ? A['meta-description'].score === 1 : null };
+}
+
+/* ===================== valutazione ===================== */
+const igOf = b => (b.manual && b.manual.igHandle) || b.instagram || '';
+function evaluate(b){
+  const m = b.manual || {}, issues = [];
+  const add = (a, t, s, w) => issues.push({ a, t, s, w });
+  // Sito
+  let site = null;
+  if(!b.website){ site = 0; add('Sito', 'Non ha un sito web', 'Realizzazione sito web', 3); }
+  else if(b.psi?.unreachable){ site = 5; add('Sito', 'Il sito non si apre o restituisce errore', 'Ripristino o rifacimento del sito', 3); }
+  else if(b.psi){
+    const p = b.psi, v = x => x ?? 50;
+    site = v(p.perf)*.4 + v(p.seo)*.3 + v(p.acc)*.15 + v(p.bp)*.15;
+    if(!p.https){ site -= 15; add('Sito', 'Il sito non usa HTTPS (il browser lo segna "Non sicuro")', 'Certificato SSL e messa in sicurezza', 2); }
+    if(p.viewport === false){ site -= 15; add('Sito', 'Il sito non è adattato agli smartphone', 'Sito responsive per mobile', 3); }
+    if(p.perf != null && p.perf < 50) add('Sito', `Sito lento da smartphone (velocità ${p.perf}/100${p.lcp ? ', contenuto principale in ' + p.lcp : ''})`, 'Ottimizzazione velocità', 2);
+    if(p.seo != null && p.seo < 80) add('Sito', `SEO di base migliorabile (${p.seo}/100)`, 'SEO locale', 2);
+    if(p.metaDesc === false) add('Sito', 'Manca la descrizione per Google nei risultati di ricerca', 'SEO locale', 1);
+    site = clamp(site);
+  }
+  // Scheda Google
+  let goog = null; const g = b.google;
+  if(g){
+    goog = 100;
+    if(g.rating == null){ goog -= 35; add('Google', 'Nessuna recensione sulla scheda Google', 'Strategia raccolta recensioni', 2); }
+    else if(g.rating < 4.0){ goog -= 25; add('Google', `Valutazione Google migliorabile (${g.rating.toFixed(1).replace('.', ',')}★)`, 'Gestione recensioni e reputazione', 2); }
+    if(g.rating != null && g.reviews < 20){ goog -= 20; add('Google', `Poche recensioni su Google (${g.reviews})`, 'Strategia raccolta recensioni', 2); }
+    else if(g.reviews < 60) goog -= 8;
+    if(g.photos < 5){ goog -= 15; add('Google', 'Poche foto sulla scheda Google', 'Foto e aggiornamento scheda Google', 1); }
+    if(!g.hasHours){ goog -= 15; add('Google', 'Orari non indicati su Google', 'Ottimizzazione scheda Google Business', 1); }
+    goog = clamp(goog);
+  }
+  // Instagram
+  let social = null;
+  const IG = { attivo: 90, poco: 55, fermo: 20, assente: 0 };
+  if(m.ig && IG[m.ig] != null){
+    social = IG[m.ig];
+    if(m.ig === 'assente') add('Social', 'Non ha un profilo Instagram', 'Apertura e gestione Instagram', 3);
+    if(m.ig === 'fermo') add('Social', 'Instagram fermo da oltre 2 mesi', 'Gestione social e piano editoriale', 3);
+    if(m.ig === 'poco') add('Social', 'Instagram aggiornato di rado', 'Piano editoriale e contenuti', 2);
+    const f = parseInt(m.followers, 10);
+    if(m.ig !== 'assente' && f >= 0 && f < 500){ social = clamp(social - 10); add('Social', `Pochi follower su Instagram (${f})`, 'Crescita follower e contenuti', 1); }
+  }
+  // Pubblicità
+  let ads = null;
+  if(m.ads === 'si') ads = 100;
+  if(m.ads === 'no'){ ads = 15; add('Pubblicità', 'Nessuna pubblicità attiva su Meta o Google', 'Campagne Meta Ads / Google Ads locali', 2); }
+
+  const parts = [[site, .35], [goog, .25], [social, .25], [ads, .15]].filter(x => x[0] != null);
+  const presence = parts.length ? Math.round(parts.reduce((s, [v, w]) => s + v*w, 0) / parts.reduce((s, [, w]) => s + w, 0)) : null;
+  issues.sort((x, y) => y.w - x.w);
+  return { site, goog, social, ads, presence, opp: presence == null ? null : 100 - presence, issues, known: parts.length };
+}
+const oppClass = o => o == null ? '' : o >= 60 ? 'hot' : o >= 35 ? 'mid' : '';
+const areaClass = v => v == null ? '' : v >= 75 ? 'good' : v >= 45 ? 'warn' : 'bad';
+
+function pitch(b, ev){
+  const me = settings.myName || '[il tuo nome]';
+  const srv = settings.myService || 'mi occupo di siti web, social e pubblicità online per le attività della zona';
+  const top = ev.issues.slice(0, 3);
+  let t = `Buongiorno, sono ${me} e ${srv}.\n\n`;
+  if(top.length){
+    t += `Ho dato un'occhiata alla presenza online di ${b.name} e ho notato qualche punto che si può migliorare facilmente:\n`;
+    top.forEach(i => t += `• ${i.t}\n`);
+    t += `\nPotrei aiutarvi con ${uniq(top.map(i => i.s.toLowerCase())).join(', ')}. `;
+  } else {
+    t += `Ho dato un'occhiata alla presenza online di ${b.name}: la base è buona e ci sono margini per portare più clienti con contenuti e pubblicità mirate. `;
+  }
+  t += `Se vi va passo a mostrarvi in 10 minuti cosa farei, senza impegno.\n\nGrazie e buona giornata!`;
+  if(settings.myPhone) t += `\n${me} · ${settings.myPhone}`;
+  return t;
+}
+function waNumber(b){
+  let d = (b.intlPhone || b.phone || '').replace(/[^\d+]/g, '');
+  if(d.startsWith('+')) d = d.slice(1);
+  else if(d.startsWith('00')) d = d.slice(2);
+  else if(/^3\d{8,9}$/.test(d)) d = '39' + d;
+  return /^393\d{8,9}$/.test(d) ? d : '';   // solo cellulari italiani hanno WhatsApp
+}
+
+/* ===================== scansione ===================== */
+async function runScan(center){
+  const r = +$('#radius').value;
+  setStatus('Cerco le attività intorno a ' + center.label + '…');
+  $('#btnHere').disabled = true;
+  try {
+    const jobs = [overpass(center, r)];
+    if(settings.googleKey) jobs.push(googleNearby(center, r));
+    const res = await Promise.allSettled(jobs);
+    const warns = [];
+    const osm = res[0].status === 'fulfilled' ? res[0].value.map(fromOsm).filter(b => b.name && b.lat != null && !b.closed) : (warns.push('OpenStreetMap: ' + res[0].reason.message), []);
+    let goo = [];
+    if(res[1]){ if(res[1].status === 'fulfilled') goo = res[1].value.filter(b => !b.closed); else warns.push('Google: ' + res[1].reason.message); }
+    const list = [...goo];
+    for(const o of osm){
+      const g = goo.find(x => sameBiz(x, o));
+      if(g){
+        g.instagram = g.instagram || o.instagram; g.facebook = g.facebook || o.facebook;
+        g.email = g.email || o.email; g.website = g.website || o.website; g.phone = g.phone || o.phone;
+        g.hours = o.hours; g.sources = ['Google', 'OpenStreetMap'];
+      } else list.push(o);
+    }
+    if(!list.length){ setStatus(warns.length ? warns.join(' · ') : 'Nessuna attività trovata: prova un raggio più ampio.', !!warns.length); return; }
+    const ids = new Set(list.map(b => b.id));
+    for(const id of Object.keys(db)){ const x = db[id]; if(!ids.has(id) && !x.status && !x.psi && !x.manual) delete db[id]; }
+    for(const b of list) db[b.id] = Object.assign(db[b.id] || {}, b);
+    scan = { ids: [...ids], center: { lat: center.lat, lon: center.lon }, radius: r, at: Date.now(), label: center.label };
+    save();
+    setStatus(`${list.length} attività entro ${fmtDist(r)} da ${center.label}` + (warns.length ? ' · ' + warns.join(' · ') : ''), !!warns.length);
+    renderScan();
+  } catch(e){ setStatus(e.message, true); }
+  finally { $('#btnHere').disabled = false; }
+}
+
+/* ===================== render ===================== */
+function itemHtml(b){
+  const ev = evaluate(b);
+  const tags = [];
+  if(!b.website) tags.push('<span class="tag bad">Senza sito</span>');
+  else if(b.psi?.unreachable) tags.push('<span class="tag bad">Sito in errore</span>');
+  else if(b.psi) tags.push(`<span class="tag ${areaClass(ev.site)}">Sito ${ev.site}/100</span>`);
+  else tags.push('<span class="tag">Sito da analizzare</span>');
+  if(b.google){
+    if(b.google.rating == null) tags.push('<span class="tag bad">0 recensioni</span>');
+    else tags.push(`<span class="tag ${b.google.rating < 4 || b.google.reviews < 20 ? 'warn' : 'good'}">${b.google.rating.toFixed(1).replace('.', ',')}★ · ${b.google.reviews}</span>`);
+  }
+  const m = b.manual || {};
+  if(m.ig) tags.push(`<span class="tag ${m.ig === 'attivo' ? 'good' : m.ig === 'poco' ? 'warn' : 'bad'}">IG ${m.ig}</span>`);
+  else if(igOf(b)) tags.push('<span class="tag">IG trovato</span>');
+  if(b.status) tags.push(`<span class="tag warn">${esc(STATUS[b.status])}</span>`);
+  const d = scan.center && b.lat != null ? fmtDist(dist(scan.center, b)) : '';
+  return `<button class="item" data-id="${esc(b.id)}">
+    <div class="score ${oppClass(ev.opp)}">${ev.opp ?? '–'}<small>opp.</small></div>
+    <div class="grow" style="min-width:0">
+      <div class="name">${esc(b.name)}</div>
+      <div class="sub">${esc(b.cat)}${d ? ' · ' + d : ''}${b.address ? ' · ' + esc(b.address) : ''}</div>
+      <div class="tags">${tags.join('')}</div>
+    </div></button>`;
+}
+function visible(){
+  const q = norm($('#q').value), cat = $('#cat').value;
+  let arr = scan.ids.map(id => db[id]).filter(Boolean);
+  arr = arr.filter(b => {
+    if(q && !norm(b.name).includes(q)) return false;
+    if(cat && b.cat !== cat) return false;
+    if(filters.nosite && b.website && !b.psi?.unreachable) return false;
+    if(filters.noig && (b.manual?.ig && b.manual.ig !== 'assente' && b.manual.ig !== 'fermo')) return false;
+    if(filters.lowrev && !(b.google && (b.google.rating == null || b.google.reviews < 20))) return false;
+    if(filters.hot){ const o = evaluate(b).opp; if(o == null || o < 60) return false; }
+    return true;
+  });
+  const s = $('#sort').value;
+  if(s === 'name') arr.sort((a, b) => a.name.localeCompare(b.name, 'it'));
+  else if(s === 'dist' && scan.center) arr.sort((a, b) => dist(scan.center, a) - dist(scan.center, b));
+  else arr.sort((a, b) => (evaluate(b).opp ?? -1) - (evaluate(a).opp ?? -1));
+  return arr;
+}
+function renderScan(){
+  $('#noKeyNote').hidden = !!settings.googleKey;
+  const has = scan.ids.length > 0;
+  $('#filters').hidden = !has;
+  if(has){
+    const cats = uniq(scan.ids.map(id => db[id]?.cat).filter(Boolean)).sort((a, b) => a.localeCompare(b, 'it'));
+    const cur = $('#cat').value;
+    $('#cat').innerHTML = '<option value="">Tutte le categorie</option>' + cats.map(c => `<option${c === cur ? ' selected' : ''}>${esc(c)}</option>`).join('');
+  }
+  const arr = visible();
+  $('#list').innerHTML = has ? (arr.length ? arr.map(itemHtml).join('') : '<div class="empty">Nessuna attività con questi filtri.</div>')
+    : '<div class="empty">Tocca <b>Scansiona intorno a me</b> per trovare le attività vicine e valutare sito, scheda Google, Instagram e pubblicità.</div>';
+  const todo = arr.filter(b => b.website && !b.psi).length;
+  $('#batchBox').hidden = !has || (!todo && !batch.running);
+  if(!batch.running) $('#batchTxt').textContent = `${todo} siti visibili ancora da analizzare (circa 15-30 s ciascuno)`;
+}
+const STATUS = { da_contattare:'Da contattare', contattato:'Contattato', interessato:'Interessato', cliente:'Cliente', scartato:'Scartato' };
+function renderLeads(){
+  const f = $('#leadStatus').value;
+  const arr = Object.values(db).filter(b => b.status && (!f || b.status === f)).sort((a, b) => (b.updated || 0) - (a.updated || 0));
+  $('#leadList').innerHTML = arr.length ? arr.map(itemHtml).join('') : '<div class="empty">Nessun lead ancora. Apri un\'attività e scegli uno stato (es. "Da contattare") per salvarla qui.</div>';
+}
+
+/* ===================== dettaglio ===================== */
+let curId = null;
+function openDetail(id){ curId = id; renderDetail(); $('#sheet').hidden = false; $('#sheet').scrollTop = 0; document.body.style.overflow = 'hidden'; }
+function closeDetail(){ $('#sheet').hidden = true; curId = null; document.body.style.overflow = ''; refresh(); }
+function renderDetail(){
+  const b = db[curId]; if(!b) return closeDetail();
+  const ev = evaluate(b), m = b.manual || {}, g = b.google, p = b.psi;
+  const ig = igOf(b), city = (b.address.split(',').pop() || '').trim();
+  const d = scan.center && b.lat != null ? fmtDist(dist(scan.center, b)) : '';
+  const area = (lab, v, hint) => `<div class="area ${areaClass(v)}"><span class="small muted">${lab}</span><b>${v == null ? '–' : v}</b><span class="small muted">${v == null ? hint : '/100'}</span></div>`;
+  const mapsUrl = g?.url || 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.name + ' ' + b.address);
+  const igUrl = ig ? 'https://www.instagram.com/' + encodeURIComponent(ig) + '/' : 'https://www.google.com/search?q=' + encodeURIComponent(`"${b.name}" ${city} instagram`);
+  const metaAds = 'https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=IT&search_type=keyword_unordered&q=' + encodeURIComponent(b.name);
+  const gAds = 'https://adstransparency.google.com/?region=IT' + (b.website ? '&domain=' + encodeURIComponent(hostOf(b.website)) : '');
+  const wa = waNumber(b), msg = pitch(b, ev);
+  $('#sheetTitle').textContent = b.name;
+  $('#sheetBody').innerHTML = `
+  <div class="card"><div class="hero">
+    <div class="score big ${oppClass(ev.opp)}">${ev.opp ?? '–'}<small>opportunità</small></div>
+    <div style="min-width:0"><div style="font-weight:700;font-size:17px">${esc(b.name)}</div>
+      <div class="small muted">${esc(b.cat)}${d ? ' · ' + d : ''}</div>
+      <div class="small muted">${esc(b.address)}</div>
+      <div class="small muted">Valutazione su ${ev.known}/4 aree · fonti: ${esc((b.sources || []).join(', '))}</div></div>
+  </div>
+  <div class="grid4" style="margin-top:12px">
+    ${area('Sito', ev.site, 'da analizzare')}${area('Google', ev.goog, 'non trovato')}${area('Instagram', ev.social, 'da verificare')}${area('Pubblicità', ev.ads, 'da verificare')}
+  </div></div>
+
+  <div class="card"><h3>Cosa proporre</h3>
+    ${ev.issues.length ? '<ul class="issues">' + ev.issues.map(i => `<li>${esc(i.t)}<div class="svc">→ ${esc(i.s)}</div></li>`).join('') + '</ul>'
+      : '<p class="small muted">Nessun punto debole rilevato finora. Analizza il sito e verifica Instagram e pubblicità per completare la valutazione.</p>'}
+  </div>
+
+  <div class="card"><h3>Sito web</h3>
+    ${b.website ? `<div class="small" style="overflow-wrap:anywhere"><a href="${esc(b.website)}" target="_blank" rel="noopener">${esc(b.website)}</a></div>` : '<p class="small muted">Nessun sito trovato su Google o OpenStreetMap.</p>'}
+    ${p && !p.unreachable ? `<dl class="kv" style="margin-top:8px">
+        <dt>Velocità mobile</dt><dd>${p.perf ?? '–'}/100${p.lcp ? ' · ' + esc(p.lcp) : ''}</dd>
+        <dt>SEO</dt><dd>${p.seo ?? '–'}/100</dd><dt>Accessibilità</dt><dd>${p.acc ?? '–'}/100</dd>
+        <dt>Buone pratiche</dt><dd>${p.bp ?? '–'}/100</dd><dt>HTTPS</dt><dd>${p.https ? 'sì' : 'no'}</dd>
+        <dt>Adatto a smartphone</dt><dd>${p.viewport == null ? '–' : p.viewport ? 'sì' : 'no'}</dd>
+        <dt>Analizzato il</dt><dd>${new Date(p.at).toLocaleDateString('it-IT')}</dd></dl>` : ''}
+    ${p?.unreachable ? `<p class="small" style="color:var(--bad)">Il sito non si carica correttamente (${esc(p.error.slice(0, 120))}).</p>` : ''}
+    <div class="btns">
+      ${b.website ? `<button class="btn sm" data-act="psi">${p ? 'Rianalizza' : 'Analizza sito'}</button>` : ''}
+      <button class="btn sm" data-act="editsite">${b.website ? 'Modifica indirizzo' : 'Aggiungi sito'}</button>
+    </div>
+    <div class="small muted" id="psiMsg" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card"><h3>Scheda Google</h3>
+    ${g ? `<dl class="kv"><dt>Valutazione</dt><dd>${g.rating == null ? 'nessuna' : g.rating.toFixed(1).replace('.', ',') + '★'}</dd>
+      <dt>Recensioni</dt><dd>${g.reviews}</dd><dt>Foto</dt><dd>${g.photos >= 10 ? '10 o più' : g.photos}</dd>
+      <dt>Orari</dt><dd>${g.hasHours ? 'indicati' : 'mancanti'}</dd><dt>Telefono</dt><dd>${esc(b.phone || '–')}</dd></dl>`
+      : `<p class="small muted">${settings.googleKey ? 'Attività non trovata tra i risultati Google: controllala a mano.' : 'Aggiungi la chiave Google nelle Impostazioni per vedere recensioni, foto e orari.'}</p>`}
+    <div class="btns"><a class="btn sm" href="${esc(mapsUrl)}" target="_blank" rel="noopener">Apri su Google Maps</a></div>
+  </div>
+
+  <div class="card"><h3>Instagram</h3>
+    <p class="small muted">${ig ? 'Profilo trovato: @' + esc(ig) + '. Aprilo e indica com\'è messo.' : 'Profilo non trovato in automatico: cercalo e indica cosa vedi.'}</p>
+    <div class="btns" style="margin-top:0"><a class="btn sm" href="${esc(igUrl)}" target="_blank" rel="noopener">${ig ? 'Apri profilo' : 'Cerca su Google'}</a></div>
+    <label class="f" for="fIgH">Nome profilo</label><input id="fIgH" data-field="igHandle" value="${esc(ig)}" placeholder="@nomeprofilo" autocapitalize="off">
+    <label class="f" for="fIg">Stato del profilo</label>
+    <select id="fIg" data-field="ig">
+      ${[['', 'Non verificato'], ['attivo', 'Attivo (post nelle ultime 2 settimane)'], ['poco', 'Poco attivo (ultimo post 2-8 settimane fa)'], ['fermo', 'Fermo (nessun post da oltre 2 mesi)'], ['assente', 'Non esiste']]
+        .map(([v, l]) => `<option value="${v}"${(m.ig || '') === v ? ' selected' : ''}>${l}</option>`).join('')}
+    </select>
+    <label class="f" for="fFol">Follower (circa)</label><input id="fFol" data-field="followers" inputmode="numeric" value="${esc(m.followers || '')}" placeholder="es. 850">
+    ${b.facebook ? `<p class="small" style="margin-top:10px">Facebook: <a href="${esc(normUrl(b.facebook.includes('facebook.') ? b.facebook : 'facebook.com/' + b.facebook))}" target="_blank" rel="noopener">apri pagina</a></p>` : ''}
+  </div>
+
+  <div class="card"><h3>Pubblicità online</h3>
+    <p class="small muted">Le librerie pubbliche di Meta e Google mostrano le inserzioni attive. Controlla e segna il risultato.</p>
+    <div class="btns" style="margin-top:0">
+      <a class="btn sm" href="${esc(metaAds)}" target="_blank" rel="noopener">Libreria inserzioni Meta</a>
+      <a class="btn sm" href="${esc(gAds)}" target="_blank" rel="noopener">Google Ads Transparency</a>
+    </div>
+    <label class="f" for="fAds">Fa pubblicità?</label>
+    <select id="fAds" data-field="ads">
+      ${[['', 'Non verificato'], ['si', 'Sì, ha inserzioni attive'], ['no', 'No, nessuna inserzione']].map(([v, l]) => `<option value="${v}"${(m.ads || '') === v ? ' selected' : ''}>${l}</option>`).join('')}
+    </select>
+  </div>
+
+  <div class="card"><h3>Lead</h3>
+    <label class="f" for="fSt">Stato</label>
+    <select id="fSt" data-field="status">
+      <option value="">Non salvato</option>${Object.entries(STATUS).map(([v, l]) => `<option value="${v}"${b.status === v ? ' selected' : ''}>${l}</option>`).join('')}
+    </select>
+    <label class="f" for="fNotes">Note</label>
+    <textarea id="fNotes" data-field="notes" style="min-height:80px" placeholder="Chi hai sentito, cosa ha detto, quando richiamare…">${esc(b.notes || '')}</textarea>
+  </div>
+
+  <div class="card"><h3>Messaggio da inviare</h3>
+    <textarea id="pitch">${esc(msg)}</textarea>
+    <div class="btns">
+      <button class="btn sm" data-act="copy">Copia</button>
+      ${wa ? `<a class="btn sm" href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" data-act="sent">WhatsApp</a>` : ''}
+      ${b.email ? `<a class="btn sm" href="mailto:${esc(b.email)}?subject=${encodeURIComponent('Presenza online di ' + b.name)}&body=${encodeURIComponent(msg)}" data-act="sent">Email</a>` : ''}
+      ${b.phone ? `<a class="btn sm" href="tel:${esc(b.phone.replace(/[^\d+]/g, ''))}">Chiama</a>` : ''}
+      ${ig ? `<a class="btn sm" href="https://ig.me/m/${encodeURIComponent(ig)}" target="_blank" rel="noopener" data-act="sent">DM Instagram</a>` : ''}
+    </div>
+    <p class="small muted" style="margin-top:8px">Rileggi e personalizza prima di inviare. Il testo si aggiorna quando cambi le valutazioni sopra.</p>
+  </div>`;
+}
+function setField(b, field, val){
+  if(field === 'status' || field === 'notes'){ b[field] = val || undefined; }
+  else { b.manual = b.manual || {}; b.manual[field] = field === 'igHandle' ? igHandle(val) : val; }
+  b.updated = Date.now(); save();
+}
+
+/* ===================== analisi in blocco ===================== */
+const batch = { running:false, stop:false };
+async function runBatch(){
+  if(batch.running){ batch.stop = true; $('#btnBatch').textContent = 'Interrompo…'; return; }
+  const todo = visible().filter(b => b.website && !b.psi);
+  if(!todo.length) return;
+  batch.running = true; batch.stop = false; $('#btnBatch').textContent = 'Ferma';
+  let done = 0, fail = 0, fatal = '';
+  const next = async () => {
+    while(todo.length && !batch.stop && !fatal){
+      const b = todo.shift();
+      $('#batchTxt').textContent = `Analizzo ${b.name}… (${done}/${done + todo.length + 1}) · tieni lo schermo acceso`;
+      try { b.psi = await analyzeSite(b); save(); }
+      catch(e){ fail++; if(/Quota|chiave/i.test(e.message)) fatal = e.message; }
+      done++; $('#batchBar').style.width = Math.round(done / (done + todo.length) * 100) + '%';
+    }
+  };
+  await Promise.all([next(), next()]);
+  batch.running = false; $('#btnBatch').textContent = 'Analizza siti'; $('#batchBar').style.width = '0';
+  renderScan();
+  $('#batchTxt').textContent = fatal || `Analizzati ${done - fail} siti${fail ? `, ${fail} non riusciti` : ''}.`;
+}
+
+/* ===================== eventi ===================== */
+function refresh(){ renderScan(); renderLeads(); }
+$('#btnHere').onclick = async () => {
+  setStatus('Rilevo la posizione…');
+  try { await runScan(await getPosition()); } catch(e){ setStatus(e.message, true); }
+};
+async function addrSearch(){
+  const q = $('#addr').value.trim(); if(!q) return;
+  setStatus('Cerco l\'indirizzo…');
+  try { await runScan(await geocode(q)); } catch(e){ setStatus(e.message, true); }
+}
+$('#btnAddr').onclick = addrSearch;
+$('#addr').addEventListener('keydown', e => { if(e.key === 'Enter') addrSearch(); });
+$('#q').addEventListener('input', renderScan);
+$('#cat').addEventListener('change', renderScan);
+$('#sort').addEventListener('change', renderScan);
+$('#chips').addEventListener('click', e => { const c = e.target.closest('.chip'); if(!c) return; filters[c.dataset.f] = !filters[c.dataset.f]; c.classList.toggle('on'); renderScan(); });
+$('#btnBatch').onclick = runBatch;
+for(const el of ['#list', '#leadList']) $(el).addEventListener('click', e => { const it = e.target.closest('.item'); if(it) openDetail(it.dataset.id); });
+$('#btnClose').onclick = closeDetail;
+$('#leadStatus').addEventListener('change', renderLeads);
+document.querySelectorAll('.tabbar button').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tabbar button').forEach(x => x.classList.toggle('on', x === t));
+  for(const v of ['scan', 'leads', 'settings']) $('#view-' + v).hidden = v !== t.dataset.tab;
+  $('#title').textContent = { scan:'Radar Attività', leads:'Lead', settings:'Impostazioni' }[t.dataset.tab];
+  refresh(); window.scrollTo(0, 0);
+});
+
+$('#sheetBody').addEventListener('change', e => {
+  const f = e.target.dataset.field; if(!f || !db[curId]) return;
+  setField(db[curId], f, e.target.value);
+  if(f !== 'notes'){ const y = $('#sheet').scrollTop; renderDetail(); $('#sheet').scrollTop = y; }
+});
+$('#sheetBody').addEventListener('click', async e => {
+  const a = e.target.closest('[data-act]'); if(!a) return;
+  const b = db[curId]; if(!b) return;
+  const act = a.dataset.act;
+  if(act === 'copy'){
+    try { await navigator.clipboard.writeText($('#pitch').value); a.textContent = 'Copiato ✓'; }
+    catch(_){ $('#pitch').select(); document.execCommand('copy'); a.textContent = 'Copiato ✓'; }
+  }
+  if(act === 'sent' && !b.status){ setField(b, 'status', 'contattato'); }
+  if(act === 'editsite'){
+    const v = prompt('Indirizzo del sito web', b.website || 'https://');
+    if(v != null){ b.website = v.trim() && v.trim() !== 'https://' ? normUrl(v) : ''; delete b.psi; b.updated = Date.now(); save(); renderDetail(); }
+  }
+  if(act === 'psi'){
+    a.disabled = true; a.textContent = 'Analisi in corso…';
+    $('#psiMsg').textContent = 'Google sta caricando il sito come uno smartphone: 15-30 secondi.';
+    try { b.psi = await analyzeSite(b); save(); if(curId === b.id){ const y = $('#sheet').scrollTop; renderDetail(); $('#sheet').scrollTop = y; } }
+    catch(err){ a.disabled = false; a.textContent = 'Riprova'; $('#psiMsg').textContent = err.message; }
+  }
+});
+
+function loadSettingsForm(){ $('#sName').value = settings.myName; $('#sService').value = settings.myService; $('#sPhone').value = settings.myPhone; $('#sKey').value = settings.googleKey; }
+$('#btnSaveSet').onclick = () => {
+  const newKey = $('#sKey').value.trim();
+  if(newKey !== settings.googleKey){ gLoad = null; gAuthFail = false; }
+  settings = { myName: $('#sName').value.trim(), myService: $('#sService').value.trim(), myPhone: $('#sPhone').value.trim(), googleKey: newKey };
+  store.set('radar_settings', settings);
+  $('#btnSaveSet').textContent = 'Salvato ✓'; setTimeout(() => $('#btnSaveSet').textContent = 'Salva impostazioni', 1500);
+  if(newKey && document.querySelector('script[src*="maps.googleapis.com"]')) location.reload();
+};
+$('#btnWipe').onclick = () => {
+  if(!confirm('Cancellare lead, note e analisi salvati su questo telefono?')) return;
+  db = {}; scan = { ids:[], center:null, radius:500, at:null, label:'' }; save(); refresh(); setStatus('');
+};
+$('#btnCsv').onclick = () => {
+  const rows = Object.values(db).filter(b => b.status);
+  const cols = ['Nome','Categoria','Indirizzo','Telefono','Email','Sito','Instagram','Stato','Opportunità','Punti deboli','Note'];
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const lines = [cols.join(';')].concat(rows.map(b => { const ev = evaluate(b); return [b.name, b.cat, b.address, b.phone, b.email, b.website, igOf(b), STATUS[b.status], ev.opp, ev.issues.map(i => i.t).join(' | '), b.notes].map(q).join(';'); }));
+  const blob = new Blob(['﻿' + lines.join('\n')], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'lead-radar-' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+};
+
+loadSettingsForm();
+if(scan.at) setStatus(`Ultima scansione: ${scan.ids.length} attività vicino a ${scan.label} (${new Date(scan.at).toLocaleString('it-IT', { dateStyle:'short', timeStyle:'short' })})`);
+refresh();
+</script>
+</body>
+</html>
