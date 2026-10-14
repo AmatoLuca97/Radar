@@ -87,6 +87,27 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 .progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
 .note{font-size:13px;background:var(--accent-soft);border-radius:10px;padding:10px 12px;margin-bottom:12px}
 .foot{font-size:11px;color:var(--muted);text-align:center;margin-top:20px}
+.cmp{width:100%;border-collapse:collapse;font-size:14px}
+.cmp th,.cmp td{padding:8px 6px;border-top:1px solid var(--line);text-align:right;vertical-align:top}
+.cmp th:first-child,.cmp td:first-child{text-align:left;color:var(--muted);font-weight:500}
+.cmp thead th{border-top:0;font-size:12px;color:var(--muted);font-weight:600}
+.cmp .win{color:var(--good);font-weight:650}.cmp .lose{color:var(--bad);font-weight:650}
+.visit .wrap{padding-bottom:40px}
+.vhead{text-align:center;padding:18px 8px 6px}
+.vhead .k{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);font-weight:700}
+.vhead h2{font-size:26px;margin:6px 0 2px;letter-spacing:-.4px}
+.vgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.vbox{border-radius:14px;padding:14px;background:var(--surface2)}
+.vbox .l{font-size:13px;color:var(--muted)}.vbox .v{font-size:18px;font-weight:700;margin-top:2px}
+.vbox.good .v{color:var(--good)}.vbox.warn .v{color:var(--warn)}.vbox.bad .v{color:var(--bad)}
+.vlist{margin:0;padding-left:20px}.vlist li{margin:6px 0}
+.vsign{text-align:center;margin-top:18px;font-size:14px}
+@media print{
+  body>*:not(#visit){display:none!important}
+  #visit{position:static;overflow:visible}
+  .noprint{display:none!important}
+  .card{box-shadow:none;break-inside:avoid}
+}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -114,6 +135,7 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
       </div>
     </div>
     <div id="noKeyNote" class="note" hidden>Senza chiave Google vedi solo le attività di OpenStreetMap e niente recensioni. Aggiungila in <b>Impostazioni</b> per dati completi e analisi siti illimitate.</div>
+    <div id="backupNote" class="note" hidden></div>
     <div id="scanStatus" class="status"></div>
     <div id="batchBox" class="card" hidden>
       <div class="row"><div class="grow small" id="batchTxt"></div><button class="btn sm" id="btnBatch">Analizza siti</button></div>
@@ -139,7 +161,8 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
   <section id="view-leads" hidden>
     <div class="row" style="margin:6px 0 10px">
       <select id="leadStatus" class="grow">
-        <option value="">Tutti i lead</option><option value="da_contattare">Da contattare</option>
+        <option value="">Tutti i lead</option><option value="da_visitare">Da visitare</option>
+        <option value="da_contattare">Da contattare</option><option value="visitato">Visitati</option>
         <option value="contattato">Contattati</option><option value="interessato">Interessati</option>
         <option value="cliente">Clienti</option><option value="scartato">Scartati</option>
       </select>
@@ -165,8 +188,17 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
     </div>
     <button class="btn primary block" id="btnSaveSet">Salva impostazioni</button>
     <div class="card" style="margin-top:16px">
+      <h3>Backup e sincronizzazione</h3>
+      <p class="small muted">Lead, note e analisi stanno nella memoria di questo browser. Esporta un backup e salvalo su iCloud Drive (o Dropbox): lo reimporti qui se il telefono cancella i dati, oppure sul PC aprendo la stessa app per avere gli stessi lead. L'importazione unisce i dati e tiene la versione più recente di ogni lead. La chiave Google non viene inclusa.</p>
+      <div class="small" id="backupInfo" style="margin-bottom:10px"></div>
+      <div class="row">
+        <button class="btn primary grow" id="btnExport">Esporta backup</button>
+        <button class="btn grow" id="btnImport">Importa backup</button>
+      </div>
+      <input type="file" id="fileImport" accept=".json,application/json" hidden>
+    </div>
+    <div class="card">
       <h3>Dati</h3>
-      <p class="small muted">Lead, note e analisi restano solo su questo telefono, in questo browser.</p>
       <button class="btn block" id="btnWipe" style="color:var(--bad)">Cancella tutti i dati</button>
     </div>
     <p class="foot">Dati attività © OpenStreetMap contributors · Powered by Google (Places, PageSpeed Insights)</p>
@@ -187,6 +219,15 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
   <div class="wrap" id="sheetBody"></div>
 </div>
 
+<div class="sheet visit" id="visit" hidden>
+  <div class="top noprint"><div class="in">
+    <button class="btn sm" id="btnVisitClose">‹ Indietro</button>
+    <div class="grow small muted">Mostra questo schermo al titolare</div>
+    <button class="btn sm" id="btnPrint">PDF</button>
+  </div></div>
+  <div class="wrap" id="visitBody"></div>
+</div>
+
 <script>
 /* ===================== utilità ===================== */
 const $ = s => document.querySelector(s);
@@ -200,7 +241,7 @@ const store = {
 let settings = store.get('radar_settings', { googleKey:'', myName:'', myService:'', myPhone:'' });
 let db = store.get('radar_db', {});
 let scan = store.get('radar_scan', { ids:[], center:null, radius:500, at:null, label:'' });
-const save = () => { store.set('radar_db', db); store.set('radar_scan', scan); };
+const save = () => { store.set('radar_db', db); store.set('radar_scan', scan); if(typeof compCache !== 'undefined') compCache.clear(); };
 const filters = { nosite:false, noig:false, hot:false, lowrev:false };
 
 function dist(a, b){
@@ -383,6 +424,22 @@ async function analyzeSite(b){
 
 /* ===================== valutazione ===================== */
 const igOf = b => (b.manual && b.manual.igHandle) || b.instagram || '';
+// Concorrente più forte: stessa categoria, entro 2 km, con più recensioni Google
+const compCache = new Map();
+function competitor(b){
+  if(!b.google || b.lat == null) return null;
+  if(compCache.has(b.id)) return compCache.get(b.id);
+  const ids = uniq([...scan.ids, ...Object.keys(db)]);
+  let best = null;
+  for(const id of ids){
+    const x = db[id];
+    if(!x || x.id === b.id || x.cat !== b.cat || !x.google || x.lat == null) continue;
+    if(x.google.reviews <= (b.google.reviews || 0) || dist(b, x) > 2000) continue;
+    if(!best || x.google.reviews > best.google.reviews) best = x;
+  }
+  compCache.set(b.id, best);
+  return best;
+}
 function evaluate(b){
   const m = b.manual || {}, issues = [];
   const add = (a, t, s, w) => issues.push({ a, t, s, w });
@@ -422,6 +479,15 @@ function evaluate(b){
     if(m.ig === 'poco') add('Social', 'Instagram aggiornato di rado', 'Piano editoriale e contenuti', 2);
     const f = parseInt(m.followers, 10);
     if(m.ig !== 'assente' && f >= 0 && f < 500){ social = clamp(social - 10); add('Social', `Pochi follower su Instagram (${f})`, 'Crescita follower e contenuti', 1); }
+  }
+  // Concorrente più forte nelle vicinanze
+  const c = competitor(b);
+  if(c){
+    const cr = c.google.reviews, mr = g.reviews || 0;
+    if(cr >= Math.max(20, mr * 2))
+      add('Concorrenza', `Il concorrente ${c.name} (${fmtDist(dist(b, c))}) ha ${cr} recensioni Google contro ${mr}`, 'Recensioni e scheda Google per superare la concorrenza', 2);
+    if(c.website && !b.website)
+      add('Concorrenza', `${c.name} ha un sito web, voi no: chi cerca online trova prima loro`, 'Realizzazione sito web', 1);
   }
   // Pubblicità
   let ads = null;
@@ -534,7 +600,7 @@ function visible(){
   const s = $('#sort').value;
   if(s === 'name') arr.sort((a, b) => a.name.localeCompare(b.name, 'it'));
   else if(s === 'dist' && scan.center) arr.sort((a, b) => dist(scan.center, a) - dist(scan.center, b));
-  else arr.sort((a, b) => (evaluate(b).opp ?? -1) - (evaluate(a).opp ?? -1));
+  else { const o = new Map(arr.map(b => [b.id, evaluate(b).opp ?? -1])); arr.sort((a, b) => o.get(b.id) - o.get(a.id)); }
   return arr;
 }
 function renderScan(){
@@ -553,7 +619,7 @@ function renderScan(){
   $('#batchBox').hidden = !has || (!todo && !batch.running);
   if(!batch.running) $('#batchTxt').textContent = `${todo} siti visibili ancora da analizzare (circa 15-30 s ciascuno)`;
 }
-const STATUS = { da_contattare:'Da contattare', contattato:'Contattato', interessato:'Interessato', cliente:'Cliente', scartato:'Scartato' };
+const STATUS = { da_visitare:'Da visitare', da_contattare:'Da contattare', visitato:'Visitato', contattato:'Contattato', interessato:'Interessato', cliente:'Cliente', scartato:'Scartato' };
 function renderLeads(){
   const f = $('#leadStatus').value;
   const arr = Object.values(db).filter(b => b.status && (!f || b.status === f)).sort((a, b) => (b.updated || 0) - (a.updated || 0));
@@ -574,7 +640,7 @@ function renderDetail(){
   const igUrl = ig ? 'https://www.instagram.com/' + encodeURIComponent(ig) + '/' : 'https://www.google.com/search?q=' + encodeURIComponent(`"${b.name}" ${city} instagram`);
   const metaAds = 'https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=IT&search_type=keyword_unordered&q=' + encodeURIComponent(b.name);
   const gAds = 'https://adstransparency.google.com/?region=IT' + (b.website ? '&domain=' + encodeURIComponent(hostOf(b.website)) : '');
-  const wa = waNumber(b), msg = pitch(b, ev);
+  const wa = waNumber(b), msg = pitch(b, ev), comp = competitor(b);
   $('#sheetTitle').textContent = b.name;
   $('#sheetBody').innerHTML = `
   <div class="card"><div class="hero">
@@ -591,6 +657,16 @@ function renderDetail(){
   <div class="card"><h3>Cosa proporre</h3>
     ${ev.issues.length ? '<ul class="issues">' + ev.issues.map(i => `<li>${esc(i.t)}<div class="svc">→ ${esc(i.s)}</div></li>`).join('') + '</ul>'
       : '<p class="small muted">Nessun punto debole rilevato finora. Analizza il sito e verifica Instagram e pubblicità per completare la valutazione.</p>'}
+  </div>
+
+  <div class="card"><h3>Confronto con il concorrente</h3>
+    ${comp ? `<p class="small muted" style="margin-top:0">Il più forte della stessa categoria nel raggio di 2 km: <b>${esc(comp.name)}</b>, a ${fmtDist(dist(b, comp))}.</p>${cmpTable(b, comp)}`
+      : `<p class="small muted">${g ? 'Nessun concorrente della stessa categoria con più recensioni nelle vicinanze: qui l\'argomento è difendere il vantaggio.' : 'Serve la scheda Google (chiave nelle Impostazioni) per confrontare recensioni e foto.'}</p>`}
+  </div>
+
+  <div class="card"><h3>Visita</h3>
+    <p class="small muted" style="margin-top:0">Una schermata pulita da mostrare al titolare sul telefono, o da salvare in PDF: niente punteggi, solo cosa va e cosa si può migliorare.</p>
+    <button class="btn primary block" data-act="visit">Apri scheda per la visita</button>
   </div>
 
   <div class="card"><h3>Sito web</h3>
@@ -651,7 +727,7 @@ function renderDetail(){
     <textarea id="fNotes" data-field="notes" style="min-height:80px" placeholder="Chi hai sentito, cosa ha detto, quando richiamare…">${esc(b.notes || '')}</textarea>
   </div>
 
-  <div class="card"><h3>Messaggio da inviare</h3>
+  <div class="card"><h3>Messaggio di follow-up (dopo la visita)</h3>
     <textarea id="pitch">${esc(msg)}</textarea>
     <div class="btns">
       <button class="btn sm" data-act="copy">Copia</button>
@@ -667,6 +743,102 @@ function setField(b, field, val){
   if(field === 'status' || field === 'notes'){ b[field] = val || undefined; }
   else { b.manual = b.manual || {}; b.manual[field] = field === 'igHandle' ? igHandle(val) : val; }
   b.updated = Date.now(); save();
+}
+
+/* ===================== confronto concorrente ===================== */
+const IG_TXT = { attivo:['Attivo', 3], poco:['Poco attivo', 2], fermo:['Fermo', 1], assente:['Assente', 0] };
+function siteCell(x){
+  if(!x.website) return { v: 0, t: 'no' };
+  if(x.psi?.unreachable) return { v: 0, t: 'non funziona' };
+  if(x.psi){ const s = evaluate(x).site; return { v: s, t: 'sì · ' + s + '/100' }; }
+  return { v: null, t: 'sì' };
+}
+function igCell(x){
+  const s = x.manual?.ig;
+  if(s && IG_TXT[s]) return { v: IG_TXT[s][1], t: IG_TXT[s][0] };
+  return { v: null, t: igOf(x) ? 'presente' : '–' };
+}
+function cmpTable(b, c, labelA){
+  const gb = b.google || {}, gc = c.google || {};
+  const rating = v => v == null ? { v: 0, t: 'nessuna' } : { v, t: v.toFixed(1).replace('.', ',') + '★' };
+  const rows = [
+    ['Valutazione Google', rating(gb.rating), rating(gc.rating)],
+    ['Recensioni', { v: gb.reviews ?? 0, t: String(gb.reviews ?? 0) }, { v: gc.reviews ?? 0, t: String(gc.reviews ?? 0) }],
+    ['Foto su Google', { v: gb.photos ?? 0, t: (gb.photos ?? 0) >= 10 ? '10+' : String(gb.photos ?? 0) }, { v: gc.photos ?? 0, t: (gc.photos ?? 0) >= 10 ? '10+' : String(gc.photos ?? 0) }],
+    ['Orari su Google', { v: gb.hasHours ? 1 : 0, t: gb.hasHours ? 'sì' : 'no' }, { v: gc.hasHours ? 1 : 0, t: gc.hasHours ? 'sì' : 'no' }],
+    ['Sito web', siteCell(b), siteCell(c)],
+    ['Instagram', igCell(b), igCell(c)]
+  ];
+  const cls = (x, y) => x.v == null || y.v == null || x.v === y.v ? '' : x.v > y.v ? 'win' : 'lose';
+  const short = s => s.length > 16 ? s.slice(0, 15) + '…' : s;
+  return `<table class="cmp"><thead><tr><th></th><th>${esc(short(labelA || b.name))}</th><th>${esc(short(c.name))}</th></tr></thead><tbody>` +
+    rows.map(([l, x, y]) => `<tr><td>${l}</td><td class="${cls(x, y)}">${esc(x.t)}</td><td>${esc(y.t)}</td></tr>`).join('') + '</tbody></table>';
+}
+
+/* ===================== scheda per la visita ===================== */
+function openVisit(){
+  const b = db[curId]; if(!b) return;
+  const ev = evaluate(b), m = b.manual || {}, comp = competitor(b);
+  const word = v => v == null ? ['Da verificare', ''] : v >= 75 ? ['Buono', 'good'] : v >= 45 ? ['Da migliorare', 'warn'] : ['Debole', 'bad'];
+  const site = !b.website ? ['Assente', 'bad'] : b.psi?.unreachable ? ['Non raggiungibile', 'bad'] : b.psi ? word(ev.site) : ['Presente', ''];
+  const goog = b.google ? word(ev.goog) : ['Da verificare', ''];
+  const igm = { attivo:['Attivo', 'good'], poco:['Poco attivo', 'warn'], fermo:['Fermo', 'bad'], assente:['Assente', 'bad'] };
+  const ig = igm[m.ig] || [igOf(b) ? 'Presente' : 'Da verificare', ''];
+  const ads = m.ads === 'si' ? ['Attiva', 'good'] : m.ads === 'no' ? ['Assente', 'warn'] : ['Da verificare', ''];
+  const box = (l, [v, c]) => `<div class="vbox ${c}"><div class="l">${l}</div><div class="v">${v}</div></div>`;
+  const services = uniq(ev.issues.map(i => i.s));
+  $('#visitBody').innerHTML = `
+    <div class="vhead"><div class="k">Analisi presenza online</div><h2>${esc(b.name)}</h2>
+      <div class="small muted">${esc(b.cat)} · ${new Date().toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' })}</div></div>
+    <div class="card"><h3>La situazione oggi</h3><div class="vgrid">
+      ${box('Sito web', site)}${box('Scheda Google', goog)}${box('Instagram', ig)}${box('Pubblicità online', ads)}</div></div>
+    ${comp ? `<div class="card"><h3>Voi e chi vi sta vicino</h3>${cmpTable(b, comp, 'Voi')}
+      <p class="small muted" style="margin-bottom:0">Chi cerca "${esc(b.cat.toLowerCase())}" in zona su Google vede per prima l'attività con più recensioni e una scheda più completa.</p></div>` : ''}
+    ${ev.issues.length ? `<div class="card"><h3>Cosa abbiamo notato</h3><ul class="vlist">${ev.issues.slice(0, 5).map(i => `<li>${esc(i.t)}</li>`).join('')}</ul></div>` : ''}
+    <div class="card"><h3>Cosa possiamo fare insieme</h3>
+      ${services.length ? `<ul class="vlist">${services.slice(0, 5).map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : '<p class="small muted">Contenuti e pubblicità mirata per portare più clienti dalla zona.</p>'}</div>
+    <div class="vsign"><b>${esc(settings.myName || '')}</b>${settings.myPhone ? ' · ' + esc(settings.myPhone) : ''}
+      ${settings.myService ? `<div class="small muted">${esc(settings.myService.charAt(0).toUpperCase() + settings.myService.slice(1))}</div>` : ''}</div>`;
+  $('#visit').hidden = false; $('#visit').scrollTop = 0;
+}
+
+/* ===================== backup ===================== */
+function renderBackup(){
+  const leads = Object.values(db).filter(x => x.status);
+  const t = store.get('radar_lastBackup', null);
+  $('#backupInfo').textContent = (t ? 'Ultimo backup: ' + new Date(t).toLocaleString('it-IT', { dateStyle:'short', timeStyle:'short' }) : 'Nessun backup ancora') + ` · ${leads.length} lead salvati`;
+  const changed = leads.filter(x => (x.updated || 0) > (t || 0)).length;
+  const old = !t || (Date.now() - t) > 3 * 864e5;
+  const show = changed > 0 && old;
+  $('#backupNote').hidden = !show;
+  if(show) $('#backupNote').innerHTML = `<div class="row"><div class="grow">${changed} lead modificati non sono in nessun backup. Se Safari cancella i dati, li perdi.</div><button class="btn sm primary" data-act="export">Esporta</button></div>`;
+}
+async function exportBackup(){
+  const name = 'radar-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  const data = { app:'radar', version:1, exportedAt:new Date().toISOString(),
+    settings:{ myName:settings.myName, myService:settings.myService, myPhone:settings.myPhone }, db };
+  const blob = new Blob([JSON.stringify(data)], { type:'application/json' });
+  const mark = () => { store.set('radar_lastBackup', Date.now()); renderBackup(); };
+  try {
+    const file = new File([blob], name, { type:'application/json' });
+    if(navigator.canShare && navigator.canShare({ files:[file] })){ await navigator.share({ files:[file], title:'Backup Radar' }); mark(); return; }
+  } catch(e){ if(e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); mark();
+}
+async function importBackup(file){
+  let j;
+  try { j = JSON.parse(await file.text()); } catch(e){ throw new Error('Il file non è un backup valido.'); }
+  if(j.app !== 'radar' || !j.db) throw new Error('Il file non è un backup di Radar.');
+  let added = 0, updated = 0;
+  for(const [id, x] of Object.entries(j.db)){
+    const cur = db[id];
+    if(!cur){ db[id] = x; added++; }
+    else if((x.updated || 0) > (cur.updated || 0)){ db[id] = Object.assign(cur, x); updated++; }
+  }
+  for(const k of ['myName', 'myService', 'myPhone']) if(!settings[k] && j.settings?.[k]) settings[k] = j.settings[k];
+  store.set('radar_settings', settings); save(); loadSettingsForm(); refresh();
+  return `Backup importato: ${added} attività nuove, ${updated} aggiornate.`;
 }
 
 /* ===================== analisi in blocco ===================== */
@@ -693,7 +865,18 @@ async function runBatch(){
 }
 
 /* ===================== eventi ===================== */
-function refresh(){ renderScan(); renderLeads(); }
+function refresh(){ renderScan(); renderLeads(); renderBackup(); }
+$('#btnVisitClose').onclick = () => { $('#visit').hidden = true; };
+$('#btnPrint').onclick = () => window.print();
+$('#btnExport').onclick = exportBackup;
+$('#backupNote').addEventListener('click', e => { if(e.target.closest('[data-act="export"]')) exportBackup(); });
+$('#btnImport').onclick = () => $('#fileImport').click();
+$('#fileImport').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if(!f) return;
+  try { alert(await importBackup(f)); } catch(err){ alert(err.message); }
+});
+try { navigator.storage?.persist?.().catch(() => {}); } catch(e){}
 $('#btnHere').onclick = async () => {
   setStatus('Rilevo la posizione…');
   try { await runScan(await getPosition()); } catch(e){ setStatus(e.message, true); }
@@ -734,6 +917,7 @@ $('#sheetBody').addEventListener('click', async e => {
     catch(_){ $('#pitch').select(); document.execCommand('copy'); a.textContent = 'Copiato ✓'; }
   }
   if(act === 'sent' && !b.status){ setField(b, 'status', 'contattato'); }
+  if(act === 'visit') openVisit();
   if(act === 'editsite'){
     const v = prompt('Indirizzo del sito web', b.website || 'https://');
     if(v != null){ b.website = v.trim() && v.trim() !== 'https://' ? normUrl(v) : ''; delete b.psi; b.updated = Date.now(); save(); renderDetail(); }
